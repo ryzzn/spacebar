@@ -31,6 +31,7 @@ extern bool g_verbose;
 #define COMMAND_CONFIG_BAR_HEIGHT              "height"
 #define COMMAND_CONFIG_BAR_SPACING_LEFT        "spacing_left"
 #define COMMAND_CONFIG_BAR_SPACING_RIGHT       "spacing_right"
+#define COMMAND_CONFIG_BAR_SLOT_TEXT           "slot_text"
 
 /* --------------------------------COMMON ARGUMENTS----------------------------- */
 #define ARGUMENT_COMMON_VAL_ON     "on"
@@ -304,6 +305,33 @@ static void handle_domain_config(FILE *rsp, struct token domain, char *message)
       } else {
 	bar_manager_set_spacing_right(&g_bar_manager, atoi(token_to_string(token)));
       }
+    } else if (token_equals(command, COMMAND_CONFIG_BAR_SLOT_TEXT)) {
+        struct token token = get_token(&message);
+        if (strncmp("left_", token.text, 5) == 0
+            && token.length == 6
+            && token.text[token.length-1] >= '0'
+            && token.text[token.length-1] <= '9') {
+            int idx = token.text[token.length-1] - '0';
+            struct token text = get_token(&message);
+            if (text.length != 0) {
+                bar_manager_set_left_slot_text(&g_bar_manager, idx, text.text);
+            } else {
+                fprintf(rsp, "%s\n", g_bar_manager.left_slots[idx]);
+            }
+        } else if (strncmp("right_", token.text, 6) == 0
+            && token.length == 7
+            && token.text[token.length-1] >= '0'
+            && token.text[token.length-1] <= '9') {
+            int idx = token.text[token.length-1] - '0';
+            struct token text = get_token(&message);
+            if (text.length != 0) {
+                bar_manager_set_right_slot_text(&g_bar_manager, idx, text.text);
+            } else {
+                fprintf(rsp, "%s\n", g_bar_manager.right_slots[idx]);
+            }
+        } else {
+            fprintf(rsp, "Invalid slot, use left_1|right_1 for example\n");
+        }
     } else {
       daemon_fail(rsp, "unknown command '%.*s' for domain '%.*s'\n", command.length, command.text, domain.length, domain.text);
     }

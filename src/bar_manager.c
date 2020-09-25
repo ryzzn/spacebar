@@ -232,6 +232,16 @@ void bar_manager_set_spacing_right(struct bar_manager *bar_manager, uint32_t spa
   bar_manager_refresh(bar_manager);
 }
 
+void bar_manager_set_left_slot_text(struct bar_manager *bar_manager, uint32 idx, char *text)
+{
+  snprintf(bar_manager->left_slots[idx], 32, "%s", text);
+}
+
+void bar_manager_set_right_slot_text(struct bar_manager *bar_manager, uint32 idx, char *text)
+{
+  snprintf(bar_manager->right_slots[idx], 32, "%s", text);
+}
+
 void bar_manager_display_changed(struct bar_manager *bar_manager)
 {
     for (int i = 0; i < bar_manager->bar_count; ++i)
@@ -274,6 +284,10 @@ void bar_manager_init(struct bar_manager *bar_manager)
     bar_manager_set_power_strip(bar_manager, NULL);
     bar_manager_set_dnd_icon(bar_manager, string_copy(""));
     bar_manager_set_dnd_icon_color(bar_manager, 0xffa8a8a8);
+    for (int i = 0; i < 10; i++) {
+      bar_manager_set_left_slot_text(bar_manager, i, "");
+      bar_manager_set_right_slot_text(bar_manager, i, "");
+    }
 }
 
 void bar_manager_begin(struct bar_manager *bar_manager)

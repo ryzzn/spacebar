@@ -33,6 +33,8 @@ struct bar_manager
   struct bar_line battr_icon;
   struct bar_line power_icon;
   struct bar_line dnd_icon;
+  char left_slots[10][32];
+  char right_slots[10][32];
 };
 
 void bar_manager_set_foreground_color(struct bar_manager *bar_manager, uint32_t color);
@@ -54,6 +56,8 @@ void bar_manager_set_position(struct bar_manager *bar_manager, char *pos);
 void bar_manager_set_height(struct bar_manager *bar_manager, uint32_t height);
 void bar_manager_set_spacing_left(struct bar_manager *bar_manager, uint32_t spacing);
 void bar_manager_set_spacing_right(struct bar_manager *bar_manager, uint32_t spacing);
+void bar_manager_set_left_slot_text(struct bar_manager *bar_manager, uint32_t idx, char *text);
+void bar_manager_set_right_slot_text(struct bar_manager *bar_manager, uint32_t idx, char *text);
 
 void bar_manager_display_changed(struct bar_manager *bar_manager);
 void bar_manager_refresh(struct bar_manager *bar_manager);

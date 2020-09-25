@@ -211,6 +211,38 @@ static int mission_control_index(uint64_t sid)
     return desktop_cnt;
 }
 
+void bar_refresh_add_line(struct bar *bar, bool isfront, struct CGRect *rc, struct bar_line line)
+{
+      CGPoint pos;
+      if (isfront) {
+          pos.x = rc->origin.x + 5;
+          pos.y = (bar->frame.size.height - line.bounds.size.height) / 2;
+          rc->origin.x += line.bounds.size.width + 5;
+      } else {
+          pos.x = rc->origin.x + rc->size.width - line.bounds.size.width - 5;
+          pos.y = (bar->frame.size.height - line.bounds.size.height) / 2;
+          rc->size.width -= line.bounds.size.width + 5;
+      }
+      bar_draw_line(bar, line, pos.x, pos.y);
+}
+
+void bar_refresh_add_text(struct bar *bar, bool isfront, struct CGRect *rc, char *text)
+{
+      struct bar_line line = bar_prepare_line(g_bar_manager.t_font, text, g_bar_manager.foreground_color);
+      CGPoint pos;
+      if (isfront) {
+          pos.x = rc->origin.x + 5;
+          pos.y = (bar->frame.size.height - line.bounds.size.height) / 2;
+          rc->origin.x += line.bounds.size.width + 5;
+      } else {
+          pos.x = rc->origin.x + rc->size.width - line.bounds.size.width - 5;
+          pos.y = (bar->frame.size.height - line.bounds.size.height) / 2;
+          rc->size.width -= line.bounds.size.width + 5;
+      }
+      bar_draw_line(bar, line, pos.x, pos.y);
+      bar_destroy_line(line);
+}
+
 void bar_refresh(struct bar *bar)
 {
     SLSDisableUpdate(g_connection);
@@ -259,67 +291,50 @@ void bar_refresh(struct bar *bar)
     // BAR RIGHT
     //
 
+    CGRect rc = {
+      .origin = { bar_left_final_item_x, bar->frame.origin.y },
+      .size = { bar->frame.size.width - 10 - bar_left_final_item_x, bar->frame.size.height }
+    };
+
     // This is used to calculate overlap for the cetner bar.
     // It is updated to represent the X position of the first item, depending on what's displayed.
-    int bar_right_first_item_x = bar->frame.size.width - 10;
     time_t rawtime;
     time(&rawtime);
-    int time_line_pos;
     struct tm *timeinfo = localtime(&rawtime);
     if (timeinfo) {
       char time[255];
       strftime(time, sizeof(time), g_bar_manager._clock_format, timeinfo);
-      struct bar_line time_line = bar_prepare_line(g_bar_manager.t_font, time, g_bar_manager.foreground_color);
-      CGPoint t_pos = bar_align_line(bar, time_line, ALIGN_RIGHT, ALIGN_CENTER);
-      bar_draw_line(bar, time_line, t_pos.x, t_pos.y);
-
-      struct bar_line time_icon = g_bar_manager.clock_icon;
-      time_icon.color = g_bar_manager.clock_icon_color;
-      CGPoint ti_pos = bar_align_line(bar, g_bar_manager.clock_icon, 0, ALIGN_CENTER);
-      ti_pos.x = t_pos.x - g_bar_manager.clock_icon.bounds.size.width - 5;
-      time_line_pos = ti_pos.x;
-      bar_right_first_item_x = ti_pos.x;
-
-      bar_draw_line(bar, time_icon, ti_pos.x, ti_pos.y);
-      bar_destroy_line(time_line);
+      bar_refresh_add_text(bar, false, &rc, time);
+      bar_refresh_add_line(bar, false, &rc, g_bar_manager.clock_icon);
     }
 
+    bar_refresh_add_text(bar, false, &rc, "hahahha");
+    
     bool has_batt = false;
     bool charging = false;
     int percent = bar_find_battery_life(&has_batt, &charging);
-    int batt_line_pos;
     if (has_batt) {
       char batt[255];
       snprintf(batt, sizeof(batt), "%' '3d%%", percent);
-      struct bar_line batt_line = bar_prepare_line(g_bar_manager.t_font, batt, g_bar_manager.foreground_color);
-      CGPoint p_pos = bar_align_line(bar, batt_line, ALIGN_RIGHT, ALIGN_CENTER);
-      p_pos.x = time_line_pos - (batt_line.bounds.size.width + g_bar_manager.spacing_right);
-      bar_draw_line(bar, batt_line, p_pos.x, p_pos.y);
-
+      bar_refresh_add_text(bar, false, &rc, batt);
       struct bar_line batt_icon = charging ? g_bar_manager.power_icon : g_bar_manager.battr_icon;
-      batt_icon.color = charging ? g_bar_manager.power_icon_color : g_bar_manager.battery_icon_color;
-      CGPoint pi_pos = bar_align_line(bar, batt_icon, 0, ALIGN_CENTER);
-      pi_pos.x = p_pos.x - batt_icon.bounds.size.width;
-      batt_line_pos = pi_pos.x;
-      bar_right_first_item_x = pi_pos.x;
-
-      bar_draw_line(bar, batt_icon, pi_pos.x, pi_pos.y);
-      bar_destroy_line(batt_line);
+      bar_refresh_add_line(bar, false, &rc, batt_icon);
     }
 
     NSUserDefaults* defaults = [[NSUserDefaults alloc]initWithSuiteName:@"com.apple.notificationcenterui"];
     bool dnd = [defaults boolForKey:@"doNotDisturb"];
     if (dnd) {
-      struct bar_line dnd_icon = g_bar_manager.dnd_icon;
-      dnd_icon.color = g_bar_manager.dnd_icon_color;
-      CGPoint di_pos = bar_align_line(bar, dnd_icon, 0, ALIGN_CENTER);
-      di_pos.x = (batt_line_pos + 5) - dnd_icon.bounds.size.width - g_bar_manager.spacing_right;
-      bar_right_first_item_x = di_pos.x;
-
-      bar_draw_line(bar, dnd_icon, di_pos.x, di_pos.y);
+        bar_refresh_add_line(bar, false, &rc, g_bar_manager.dnd_icon);
     }
 
+    for (int i = 0; i < 10; i++) {
+        if (strnlen(g_bar_manager.right_slots[i], 32) != 0) {
+            bar_refresh_add_text(bar, false, &rc, g_bar_manager.right_slots[i]);
+        }
+    }
 
+    bar_left_final_item_x = CGRectGetMinX(rc);
+    int bar_right_first_item_x = CGRectGetMaxX(rc);
     // BAR CENTER
     char *title = focused_window_title();
     if (title) {
